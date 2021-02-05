@@ -20,6 +20,7 @@ if [ -z "${2+x}" ]; then
 fi
 
 playlist=$1
+playlistdir=$(dirname "$playlist")
 outputdir=${2%/}
 
 if [ ! -d $outputdir ]; then
@@ -27,16 +28,24 @@ if [ ! -d $outputdir ]; then
 	mkdir -p $outputdir
 fi
 
-declare -i lines=$(wc -l < $playlist)
+outputdir=$(realpath $outputdir)
+
+declare -i lines=$(wc -l < "$playlist")
 declare -i songs=($lines-1)/2
 
 for ((song = 1; song <= $songs; song++)); do
-	songtitle="$(awk "NR==$song*2 {print}" $playlist | cut -d',' -f2-)"
+	songtitle="$(awk "NR==$song*2 {print}" "$playlist" | cut -d',' -f2-)"
 	songtitle=${songtitle//\//-}
-	echo -e "$song/$songs\tDownloading $songtitle"
+	#echo -e "$song/$songs\tDownloading $songtitle"
 	
-	songlink="$(awk "NR==$song*2+1 {print}" $playlist)"
-	curl -o "$outputdir/$song $songtitle.mp3" "$songlink"  --silent --show-error
+	songlink="$(awk "NR==$song*2+1 {print}" "$playlist")"
+	if [ -f "$songlink" ]; then
+        echo "$songlink exists."
+    else 
+        songlink="$playlistdir/$songlink"
+        echo "new link $songlink"
+    fi	
+    cp "$songlink" "$outputdir"
 done
 
 echo -e "\nAll songs downloaded."
